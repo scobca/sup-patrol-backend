@@ -31,12 +31,12 @@ export class UserModel extends Model {
 
   @NotEmpty
   @Column
-  password: string;
+  hash: string;
 
   @NotEmpty
   @Unique
   @Column
-  tokenType: string;
+  tokenType: number;
 
   @NotEmpty
   @Unique
