@@ -7,10 +7,22 @@ import { LoginUserInputDto } from '../dto/login-user-input.dto';
 export class AuthController {
   constructor(@Inject(AuthProvider) private authProvider: AuthProvider) {}
 
+  @Post('/createUser')
+  @HttpCode(200)
+  async createUser(@Body() data: CreateUserInputDto) {
+    return await this.authProvider.createUser(data);
+  }
+
   @Post('/createAdmin')
   @HttpCode(200)
   async createAdmin(@Body() data: CreateUserInputDto) {
     return await this.authProvider.createAdmin(data);
+  }
+
+  @Post('/createSuperAdmin')
+  @HttpCode(200)
+  async createSuperAdmin(@Body() data: CreateUserInputDto) {
+    return await this.authProvider.createSuperAdmin(data);
   }
 
   @Post('/login')

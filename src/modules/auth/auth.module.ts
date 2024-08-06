@@ -5,26 +5,23 @@ import { SequelizeModule } from '@nestjs/sequelize';
 import { UserModel } from '../user/models/user.model';
 import { UserModule } from '../user/user.module';
 import { BcryptUtil } from '../../utils/bcrypt.util';
-import { JwtUtil } from '../../utils/jwt.util';
+import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
-import { JwtOptionsModule } from './jwt/jwt.options.module';
+import { jwtConf } from '../../conf/jwt.conf';
+import { JwtStrategy } from '../../strategies/jwt.strategy';
 
 @Module({
   imports: [
     SequelizeModule.forFeature([UserModel]),
-    JwtModule.registerAsync({
-      useClass: JwtOptionsModule,
-    }),
     UserModule,
+    PassportModule,
+    JwtModule.register({
+      secret: jwtConf.secret,
+      signOptions: { expiresIn: jwtConf.secretOptions },
+    }),
   ],
   controllers: [AuthController],
-  providers: [AuthProvider, BcryptUtil, JwtUtil],
-  exports: [
-    JwtModule.registerAsync({
-      useClass: JwtOptionsModule,
-    }),
-    AuthProvider,
-    JwtUtil,
-  ],
+  providers: [AuthProvider, BcryptUtil, JwtStrategy],
+  exports: [AuthProvider, JwtModule],
 })
 export class AuthModule {}

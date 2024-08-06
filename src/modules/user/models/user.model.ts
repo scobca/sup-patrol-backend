@@ -34,7 +34,6 @@ export class UserModel extends Model {
   hash: string;
 
   @NotEmpty
-  @Unique
   @Column
   tokenType: number;
 
