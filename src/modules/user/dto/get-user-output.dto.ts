@@ -1,7 +1,10 @@
 export class GetUserOutputDto {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  tgID: number;
+  constructor(
+    public id: number | null = null,
+    public name: string | null = null,
+    public email: string | null = null,
+    public phone: string | null = null,
+    public tgID: number | null = null,
+    public tokenType: number | null = null,
+  ) {}
 }
