@@ -8,6 +8,12 @@ import { Op } from 'sequelize';
 import { TokenTypeEnum } from '../../../utils/token.type.enum';
 import { GetUserTokenDto } from '../dto/get-user-token.dto';
 import { JwtService } from '@nestjs/jwt';
+import { DoubleRecordException } from '../../../exceptions/double-record.exception';
+import { findMatchingValues } from '../../../utils/matching-values.util';
+import { validateObject } from '../../../utils/validation.util';
+import { MatchingValuesUserOutputDto } from '../dto/matching-values-user-output.dto';
+import { UniversalTypeException } from '../../../exceptions/universal-type.exception';
+import { HttpCodesEnum } from '../../../utils/http-codes.enum';
 
 @Injectable()
 export class AuthProvider {
@@ -18,7 +24,7 @@ export class AuthProvider {
   ) {}
 
   public async checkUnique(data: CreateUserInputDto) {
-    return UserModel.findOne({
+    const user = await UserModel.findOne({
       where: {
         [Op.or]: [
           { email: data.email },
@@ -27,12 +33,30 @@ export class AuthProvider {
         ],
       },
     });
+
+    if (user) {
+      const matchingValues = validateObject(
+        new MatchingValuesUserOutputDto(),
+        findMatchingValues(data, (await user).dataValues),
+      );
+
+      Object.keys(matchingValues).forEach((key) => {
+        if (matchingValues[key] == undefined) {
+          delete matchingValues[key];
+        }
+      });
+      const model = Object.entries(matchingValues)[0];
+
+      throw new DoubleRecordException(`{ ${model[0]}: ${model[1]} }`);
+    } else {
+      return true;
+    }
   }
 
   public async createUser(data: CreateUserInputDto) {
-    const user = await this.checkUnique(data);
+    const checkUnique = await this.checkUnique(data);
 
-    if (!user) {
+    if (checkUnique) {
       const newUser = await UserModel.create({
         name: data.name,
         email: data.email,
@@ -49,15 +73,13 @@ export class AuthProvider {
       };
 
       return this.login(credits);
-    } else {
-      console.log('error');
     }
   }
 
   public async createAdmin(data: CreateUserInputDto) {
-    const user = await this.checkUnique(data);
+    const checkUnique = await this.checkUnique(data);
 
-    if (!user) {
+    if (checkUnique) {
       const newUser = await UserModel.create({
         name: data.name,
         email: data.email,
@@ -74,15 +96,13 @@ export class AuthProvider {
       };
 
       return await this.login(credits);
-    } else {
-      console.log(user);
     }
   }
 
   public async createSuperAdmin(data: CreateUserInputDto) {
-    const user = await this.checkUnique(data);
+    const checkUnique = await this.checkUnique(data);
 
-    if (!user) {
+    if (checkUnique) {
       console.log(data);
       const newUser = await UserModel.create({
         name: data.name,
@@ -93,8 +113,6 @@ export class AuthProvider {
         tgID: data.tgID,
       });
 
-      // const user = await this.userProvider.getUser(data);
-
       const credits: LoginUserInputDto = {
         id: newUser.id,
         email: data.email,
@@ -102,8 +120,6 @@ export class AuthProvider {
       };
 
       return this.login(credits);
-    } else {
-      console.log('error');
     }
   }
 
@@ -129,7 +145,10 @@ export class AuthProvider {
         user: user,
       };
     } else {
-      console.log('error');
+      throw new UniversalTypeException(
+        'Неверные логин или пароль. Вход в аккаунт отклонен.',
+        HttpCodesEnum.INVALID_CREDENTIALS,
+      );
     }
   }
 }
