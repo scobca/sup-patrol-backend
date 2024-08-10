@@ -8,7 +8,6 @@ import { Op } from 'sequelize';
 import { TokenTypeEnum } from '../../../utils/token.type.enum';
 import { GetUserTokenDto } from '../dto/get-user-token.dto';
 import { JwtService } from '@nestjs/jwt';
-import { GetUserInputDto } from '../../user/dto/get-user-input.dto';
 
 @Injectable()
 export class AuthProvider {
@@ -18,9 +17,23 @@ export class AuthProvider {
     @Inject(JwtService) private jwt: JwtService,
   ) {}
 
+  public async checkUnique(data: CreateUserInputDto) {
+    return UserModel.findOne({
+      where: {
+        [Op.or]: [
+          { email: data.email },
+          { phone: data.phone },
+          { tgID: data.tgID },
+        ],
+      },
+    });
+  }
+
   public async createUser(data: CreateUserInputDto) {
-    if ((await this.userProvider.getUser(data)) == null) {
-      await UserModel.create({
+    const user = await this.checkUnique(data);
+
+    if (!user) {
+      const newUser = await UserModel.create({
         name: data.name,
         email: data.email,
         phone: data.phone,
@@ -30,6 +43,7 @@ export class AuthProvider {
       });
 
       const credits: LoginUserInputDto = {
+        id: newUser.id,
         email: data.email,
         password: data.password,
       };
@@ -41,18 +55,10 @@ export class AuthProvider {
   }
 
   public async createAdmin(data: CreateUserInputDto) {
-    const payload: GetUserInputDto = {
-      email: data.email,
-      phone: data.phone,
-      tgID: data.tgID,
-    };
-
-    const user = await this.userProvider.getUser(payload);
-
-    console.log(data);
+    const user = await this.checkUnique(data);
 
     if (!user) {
-      await UserModel.create({
+      const newUser = await UserModel.create({
         name: data.name,
         email: data.email,
         phone: data.phone,
@@ -62,6 +68,7 @@ export class AuthProvider {
       });
 
       const credits: LoginUserInputDto = {
+        id: newUser.id,
         email: data.email,
         password: data.password,
       };
@@ -73,9 +80,11 @@ export class AuthProvider {
   }
 
   public async createSuperAdmin(data: CreateUserInputDto) {
-    if ((await this.userProvider.getUser(data)) == null) {
+    const user = await this.checkUnique(data);
+
+    if (!user) {
       console.log(data);
-      await UserModel.create({
+      const newUser = await UserModel.create({
         name: data.name,
         email: data.email,
         phone: data.phone,
@@ -84,7 +93,10 @@ export class AuthProvider {
         tgID: data.tgID,
       });
 
+      // const user = await this.userProvider.getUser(data);
+
       const credits: LoginUserInputDto = {
+        id: newUser.id,
         email: data.email,
         password: data.password,
       };
@@ -104,6 +116,7 @@ export class AuthProvider {
 
     if (user && (await this.bcrypt.compare(data.password, user.hash))) {
       const payload: GetUserTokenDto = {
+        id: user.id,
         name: user.name,
         email: user.email,
         phone: user.phone,

@@ -12,7 +12,8 @@ export class SuperAdminGuard implements CanActivate {
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
     const req = context.switchToHttp().getRequest();
-    if (req.user?.tokenType != 2) {
+
+    if (req.user?.tokenType != 2 || req.user?.tokenType == null) {
       throw new UnauthorizedException();
     }
     return true;

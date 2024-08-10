@@ -13,7 +13,7 @@ export class AdminGuard implements CanActivate {
   ): boolean | Promise<boolean> | Observable<boolean> {
     const req = context.switchToHttp().getRequest();
 
-    if (req.user?.tokenType == 0) {
+    if (req.user?.tokenType == 0 || req.user?.tokenType == null) {
       throw new UnauthorizedException();
     }
     return true;
