@@ -1,30 +1,37 @@
 import { Injectable } from '@nestjs/common';
-import { GetUserInputDto } from '../dto/get-user-input.dto';
 import { UserModel } from '../models/user.model';
-import { Op } from 'sequelize';
 import { GetUserOutputDto } from '../dto/get-user-output.dto';
-import { CreateUserInputDto } from '../../auth/dto/create-user-input.dto';
+import { UpdateUserInputDto } from '../dto/update-user-input.dto';
+import { validateObject } from '../../../utils/validation.util';
 
 @Injectable()
 export class UserProvider {
-  public async getUser(data: CreateUserInputDto | GetUserInputDto) {
-    return await UserModel.findOne({
-      where: {
-        [Op.or]: [
-          { email: data.email },
-          { phone: data.phone },
-          { tgID: data.tgID },
-        ],
-      },
-    }).then((res: GetUserOutputDto | null) => {
-      return res;
+  public async getById(id: number): Promise<GetUserOutputDto> {
+    const user = await UserModel.findOne({
+      where: { id: id },
     });
+
+    return validateObject(new GetUserOutputDto(), user);
   }
 
-  public async getById(email: string) {
-    return await UserModel.findOne({
-      where: { email: email },
-    });
+  public async getAll(): Promise<UserModel[] | null> {
+    return await UserModel.findAll();
+  }
+
+  public async updateUser(data: UpdateUserInputDto) {
+    const user = await this.getById(data.id);
+    const updateData: Partial<UserModel> = data.credits;
+
+    if (user) {
+      await UserModel.update(
+        { ...updateData },
+        {
+          where: { id: data.id },
+        },
+      );
+
+      return 'Changes saved';
+    }
   }
 
   public async deleteUser(id: number) {
